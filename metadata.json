@@ -1,0 +1,6 @@
+{
+  "name": "PhishGuard",
+  "description": "Détecteur de phishing autonome et pédagogique pour analyser les emails et URLs suspects en toute transparence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

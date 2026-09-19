@@ -1,0 +1,1789 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PhishGuard — Détecteur de Phishing & Analyseur d'Email / URL</title>
+    <meta name="description" content="Détecteur de tentatives de phishing transparent, 100% local et pédagogique. Analysez vos emails et URLs suspects sans envoyer vos données." />
+    <meta property="og:title" content="PhishGuard — Détecteur de Phishing & Analyseur d'Email / URL" />
+    <meta property="og:description" content="Détecteur de phishing transparent, 100% local et pédagogique. Analysez vos emails et URLs suspects sans envoyer vos données." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <style>
+      /* --- RESET & VARIABLES GLOBALES --- */
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        
+        /* Palette vive et énergique radar */
+        --bg-page: #f6f8fc;
+        --bg-surface: #ffffff;
+        --bg-surface-elevated: #ffffff;
+        --border-subtle: #e2e8f0;
+        --border-focus: #7c3aed;
+        
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #64748b;
+        
+        /* Accents vifs */
+        --violet-electric: #7c3aed;
+        --violet-glow: rgba(124, 58, 237, 0.16);
+        --violet-light: #ede9fe;
+        
+        --cyan-vivid: #06b6d4;
+        --cyan-glow: rgba(6, 182, 212, 0.18);
+        --cyan-light: #cffafe;
+        
+        --coral-red: #ff3366;
+        --coral-glow: rgba(255, 51, 102, 0.18);
+        --coral-light: #ffe4e8;
+        
+        --amber-warning: #f59e0b;
+        --amber-glow: rgba(245, 158, 11, 0.16);
+        --amber-light: #fef3c7;
+        
+        --mint-safe: #10b981;
+        --mint-glow: rgba(16, 185, 129, 0.16);
+        --mint-light: #d1fae5;
+        
+        --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+        --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+        --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.09);
+        --shadow-radar: 0 0 24px rgba(124, 58, 237, 0.14);
+      }
+
+      body {
+        font-family: var(--font-body);
+        background-color: var(--bg-page);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background-image: 
+          radial-gradient(circle at 10% 10%, rgba(124, 58, 237, 0.06) 0%, transparent 40%),
+          radial-gradient(circle at 90% 15%, rgba(6, 182, 212, 0.06) 0%, transparent 40%),
+          linear-gradient(180deg, #ffffff 0%, var(--bg-page) 300px);
+      }
+
+      /* Conteneur principal */
+      .app-shell {
+        max-width: 1080px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 24px 20px 60px 20px;
+        flex: 1;
+      }
+
+      /* En-tête Radar */
+      .radar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 22px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+
+      .brand-group {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .radar-pulse-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--violet-electric) 0%, var(--cyan-vivid) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        position: relative;
+        box-shadow: var(--shadow-radar);
+        flex-shrink: 0;
+      }
+
+      .radar-pulse-icon::after {
+        content: "";
+        position: absolute;
+        inset: -3px;
+        border-radius: 13px;
+        border: 2px solid var(--cyan-vivid);
+        opacity: 0.5;
+        animation: pulseBorder 2.4s ease-out infinite;
+      }
+
+      @keyframes pulseBorder {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.08); opacity: 0.2; }
+        100% { transform: scale(0.95); opacity: 0.8; }
+      }
+
+      .brand-title {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .brand-title span.highlight {
+        color: var(--violet-electric);
+      }
+
+      .brand-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+
+      .privacy-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--cyan-light);
+        color: #0e7490;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(6, 182, 212, 0.3);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--cyan-vivid);
+        border-radius: 50%;
+        box-shadow: 0 0 8px var(--cyan-vivid);
+        animation: blink 1.6s infinite;
+      }
+
+      @keyframes blink {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.85); }
+      }
+
+      /* Zone de Saisie Principale */
+      .scanner-workbench {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 24px;
+        position: relative;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .scanner-workbench:focus-within {
+        border-color: var(--violet-electric);
+        box-shadow: 0 0 0 3px var(--violet-glow), var(--shadow-md);
+      }
+
+      .workbench-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .input-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .input-type-tag {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 6px;
+        background: var(--bg-page);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-subtle);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .input-type-tag.active-url {
+        background: var(--cyan-light);
+        color: #0e7490;
+        border-color: rgba(6, 182, 212, 0.3);
+      }
+
+      .input-type-tag.active-email {
+        background: var(--violet-light);
+        color: var(--violet-electric);
+        border-color: rgba(124, 58, 237, 0.3);
+      }
+
+      .input-area-wrapper {
+        position: relative;
+        width: 100%;
+      }
+
+      .scanner-textarea {
+        width: 100%;
+        min-height: 150px;
+        max-height: 400px;
+        padding: 16px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 14.5px;
+        color: var(--text-primary);
+        background: #fafbfd;
+        border: 1.5px solid var(--border-subtle);
+        border-radius: 12px;
+        outline: none;
+        resize: vertical;
+        line-height: 1.6;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+
+      .scanner-textarea:focus {
+        background: #ffffff;
+        border-color: var(--violet-electric);
+      }
+
+      .scanner-textarea::placeholder {
+        color: #94a3b8;
+        font-family: var(--font-body);
+        font-size: 14px;
+      }
+
+      /* Télémesure & Actions */
+      .workbench-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 14px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .stats-counter {
+        font-size: 13px;
+        color: var(--text-muted);
+        display: flex;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .stats-counter span strong {
+        color: var(--text-primary);
+      }
+
+      .actions-cluster {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      /* Boutons */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 700;
+        border-radius: 9px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.18s ease;
+        white-space: nowrap;
+        user-select: none;
+      }
+
+      .btn svg {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--violet-electric) 0%, #6d28d9 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+        box-shadow: 0 4px 14px rgba(124, 58, 237, 0.45);
+        transform: translateY(-1px);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .btn-secondary {
+        background: #ffffff;
+        color: var(--text-primary);
+        border-color: var(--border-subtle);
+      }
+
+      .btn-secondary:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-muted);
+      }
+
+      .btn-ghost:hover {
+        background: #f1f5f9;
+        color: var(--text-primary);
+      }
+
+      /* Menu des Exemples */
+      .presets-bar {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--border-subtle);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .presets-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-right: 4px;
+      }
+
+      .preset-chip {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 11px;
+        background: var(--bg-page);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: 7px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .preset-chip:hover {
+        background: var(--violet-light);
+        color: var(--violet-electric);
+        border-color: rgba(124, 58, 237, 0.3);
+      }
+
+      .preset-chip.safe-example:hover {
+        background: var(--mint-light);
+        color: #065f46;
+        border-color: rgba(16, 185, 129, 0.4);
+      }
+
+      /* Conteneur de Résultats */
+      #resultsSection {
+        display: none;
+        animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Verdict Hero Grid */
+      .verdict-cockpit {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+
+      @media (max-width: 800px) {
+        .verdict-cockpit {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Card de Score avec jauge animée */
+      .score-meter-card {
+        background: var(--bg-surface);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1.5px solid var(--border-subtle);
+        box-shadow: var(--shadow-md);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .gauge-wrapper {
+        position: relative;
+        width: 170px;
+        height: 170px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+
+      .gauge-svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      .gauge-bg {
+        fill: none;
+        stroke: #e2e8f0;
+        stroke-width: 12;
+      }
+
+      .gauge-fill {
+        fill: none;
+        stroke-width: 12;
+        stroke-linecap: round;
+        stroke-dasharray: 440;
+        stroke-dashoffset: 440;
+        transition: stroke-dashoffset 1.2s cubic-bezier(0.2, 0.8, 0.2, 1), stroke 0.4s ease;
+      }
+
+      .gauge-center-text {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .score-number {
+        font-family: var(--font-display);
+        font-size: 42px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -1.5px;
+      }
+
+      .score-max {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 600;
+        margin-top: 2px;
+      }
+
+      .score-level-badge {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 6px 14px;
+        border-radius: 20px;
+        margin-top: 6px;
+        display: inline-block;
+      }
+
+      /* Card Verdict Détaillé */
+      .verdict-info-card {
+        background: var(--bg-surface);
+        border-radius: 16px;
+        padding: 26px;
+        border: 1.5px solid var(--border-subtle);
+        box-shadow: var(--shadow-md);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .verdict-headline {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .verdict-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .verdict-icon svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .verdict-title {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.3;
+      }
+
+      .verdict-description {
+        font-size: 14.5px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+
+      /* Échelle de Risque */
+      .risk-scale-container {
+        margin-top: auto;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .risk-scale-track {
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--mint-safe) 0%, var(--amber-warning) 50%, var(--coral-red) 100%);
+        position: relative;
+        margin-bottom: 8px;
+      }
+
+      .risk-scale-marker {
+        position: absolute;
+        top: -4px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 3px solid var(--text-primary);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        transform: translateX(-50%);
+        transition: left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .risk-scale-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+
+      /* Niveaux de Risque - Couleurs Thématiques */
+      .risk-high {
+        --theme-color: var(--coral-red);
+        --theme-glow: var(--coral-glow);
+        --theme-light: var(--coral-light);
+        --theme-text: #b91c1c;
+      }
+
+      .risk-moderate {
+        --theme-color: var(--amber-warning);
+        --theme-glow: var(--amber-glow);
+        --theme-light: var(--amber-light);
+        --theme-text: #b45309;
+      }
+
+      .risk-low {
+        --theme-color: var(--mint-safe);
+        --theme-glow: var(--mint-glow);
+        --theme-light: var(--mint-light);
+        --theme-text: #047857;
+      }
+
+      .risk-badge-high {
+        background: var(--coral-light);
+        color: #be123c;
+        border: 1px solid rgba(255, 51, 102, 0.3);
+      }
+
+      .risk-badge-moderate {
+        background: var(--amber-light);
+        color: #b45309;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+      }
+
+      .risk-badge-low {
+        background: var(--mint-light);
+        color: #047857;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+
+      /* Section des Signaux */
+      .signals-section {
+        background: var(--bg-surface);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 24px;
+      }
+
+      .signals-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .signals-title {
+        font-family: var(--font-display);
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .signals-count-pill {
+        font-size: 12px;
+        font-weight: 700;
+        background: var(--violet-light);
+        color: var(--violet-electric);
+        padding: 2px 10px;
+        border-radius: 12px;
+      }
+
+      /* Liste des Signaux Détectés */
+      .signals-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .signal-item {
+        background: #ffffff;
+        border: 1px solid var(--border-subtle);
+        border-left: 5px solid var(--border-color, var(--violet-electric));
+        border-radius: 10px;
+        padding: 16px 18px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .signal-item:hover {
+        transform: translateX(2px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .signal-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+      }
+
+      .signal-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .signal-severity-tag {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 5px;
+        letter-spacing: 0.4px;
+      }
+
+      .severity-critical {
+        background: var(--coral-light);
+        color: #be123c;
+      }
+
+      .severity-high {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .severity-medium {
+        background: var(--amber-light);
+        color: #b45309;
+      }
+
+      .severity-low {
+        background: var(--cyan-light);
+        color: #0e7490;
+      }
+
+      .signal-quote {
+        background: #f8fafc;
+        border-left: 2px solid #cbd5e1;
+        padding: 6px 12px;
+        margin: 8px 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        color: #334155;
+        border-radius: 0 6px 6px 0;
+        word-break: break-all;
+      }
+
+      .signal-explanation {
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        margin-top: 6px;
+      }
+
+      .signal-tip {
+        font-size: 13px;
+        color: #0f766e;
+        background: #f0fdfa;
+        border-radius: 6px;
+        padding: 6px 10px;
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .signal-tip strong {
+        color: #115e59;
+      }
+
+      /* État Zéro Signal / Cas Rassurant */
+      .zero-signals-card {
+        padding: 28px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+        border: 1px solid #bbf7d0;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .zero-signals-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: #dcfce7;
+        color: #15803d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .zero-signals-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #14532d;
+        margin-bottom: 4px;
+      }
+
+      .zero-signals-text {
+        font-size: 14px;
+        color: #166534;
+        line-height: 1.55;
+      }
+
+      /* Grille Conseils Réflexes */
+      .reflexes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+        margin-top: 24px;
+      }
+
+      .reflex-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .reflex-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+      }
+
+      .reflex-card-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: var(--violet-light);
+        color: var(--violet-electric);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .reflex-card-text {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      /* Pied de page */
+      .app-footer {
+        text-align: center;
+        padding: 24px 0 10px 0;
+        font-size: 12.5px;
+        color: var(--text-muted);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .app-footer strong {
+        color: var(--text-secondary);
+      }
+
+      /* Notification Toast */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: var(--text-primary);
+        color: #ffffff;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        font-weight: 600;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 9999;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
+      }
+
+      .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      
+      <!-- En-tête Radar & Déclaration de Confidentialité -->
+      <header class="radar-header">
+        <div class="brand-group">
+          <div class="radar-pulse-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">Phish<span class="highlight">Guard</span></h1>
+            <div class="brand-subtitle">Détecteur de phishing heuristique & transparent</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="privacy-badge" title="Toutes les analyses sont exécutées exclusivement dans votre navigateur">
+            <span class="status-dot"></span>
+            100% Local • Zéro Donnée Envoyée
+          </div>
+          <button id="btnCopySelfContained" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12.5px;" title="Copier le code HTML complet pour usage hors ligne">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Fichier Autonome
+          </button>
+        </div>
+      </header>
+
+      <!-- Zone de Saisie & Banc d'Analyse -->
+      <main>
+        <section class="scanner-workbench" id="workbench">
+          <div class="workbench-top">
+            <label for="scannerInput" class="input-label">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--violet-electric)">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              Contenu à Analyser
+            </label>
+            <div id="inputTypeIndicator" class="input-type-tag">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
+              Email ou URL
+            </div>
+          </div>
+
+          <div class="input-area-wrapper">
+            <textarea 
+              id="scannerInput" 
+              class="scanner-textarea" 
+              placeholder="Collez ici le texte complet d'un email suspect (expéditeur, sujet, corps du message) ou directement une URL à vérifier..."
+              aria-label="Contenu de l'email ou URL à analyser"
+              spellcheck="false"
+            ></textarea>
+          </div>
+
+          <div class="workbench-footer">
+            <div class="stats-counter" id="textStats">
+              <span>Caractères : <strong id="charCount">0</strong></span>
+              <span>Lien(s) détecté(s) : <strong id="linksCount">0</strong></span>
+            </div>
+
+            <div class="actions-cluster">
+              <button id="btnReset" class="btn btn-ghost" title="Effacer le contenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+                Réinitialiser
+              </button>
+
+              <button id="btnAnalyze" class="btn btn-primary" title="Lancer l'analyse heuristique immédiate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                Analyser le Risque
+              </button>
+            </div>
+          </div>
+
+          <!-- Raccourcis Exemples d'attaques concrètes -->
+          <div class="presets-bar">
+            <span class="presets-label">Charger un exemple :</span>
+            <button class="preset-chip" data-preset="bank" type="button">
+              💳 Fausse alerte bancaire (Urgence)
+            </button>
+            <button class="preset-chip" data-preset="parcel" type="button">
+              📦 Colis La Poste bloqué (1,99€)
+            </button>
+            <button class="preset-chip" data-preset="tax" type="button">
+              💰 Remboursement Impôts / Ameli
+            </button>
+            <button class="preset-chip" data-preset="ip-url" type="button">
+              🌐 URL suspecte sur IP brute
+            </button>
+            <button class="preset-chip safe-example" data-preset="legit" type="button">
+              ✅ Email officiel légitime
+            </button>
+          </div>
+        </section>
+
+        <!-- Zone de Restitution du Résultat -->
+        <section id="resultsSection" aria-live="polite">
+          
+          <!-- Synthèse Cockpit : Jauge & Verdict -->
+          <div class="verdict-cockpit">
+            
+            <!-- Carte Jauge de Risque -->
+            <div class="score-meter-card" id="meterCard">
+              <div class="gauge-wrapper">
+                <svg class="gauge-svg" viewBox="0 0 160 160">
+                  <circle class="gauge-bg" cx="80" cy="80" r="70"></circle>
+                  <circle id="gaugeFill" class="gauge-fill" cx="80" cy="80" r="70"></circle>
+                </svg>
+                <div class="gauge-center-text">
+                  <div id="scoreValue" class="score-number">0</div>
+                  <div class="score-max">/ 100</div>
+                </div>
+              </div>
+              <div id="riskLevelBadge" class="score-level-badge risk-badge-low">
+                Calcul en cours...
+              </div>
+            </div>
+
+            <!-- Carte Verdict & Recommandation Rapide -->
+            <div class="verdict-info-card" id="verdictInfoCard">
+              <div>
+                <div class="verdict-headline">
+                  <div id="verdictIconBox" class="verdict-icon" style="background: var(--mint-light); color: var(--mint-safe);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 id="verdictTitle" class="verdict-title">Analyse terminée</h2>
+                    <p id="verdictSubtitle" style="font-size: 13px; color: var(--text-muted);">Synthèse basée sur 10 règles heuristiques de cybersécurité</p>
+                  </div>
+                </div>
+
+                <p id="verdictExplanation" class="verdict-description">
+                  Le moteur analyse le vocabulaire, la structure des liens, les extensions de domaines et les pièces jointes mentionnées.
+                </p>
+              </div>
+
+              <!-- Échelle de sévérité globale -->
+              <div class="risk-scale-container">
+                <div class="risk-scale-track">
+                  <div id="riskMarker" class="risk-scale-marker" style="left: 0%;"></div>
+                </div>
+                <div class="risk-scale-labels">
+                  <span>0 - Faible</span>
+                  <span>50 - Modéré</span>
+                  <span>100 - Critique</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Décomposition Transparente des Signaux Détectés -->
+          <div class="signals-section">
+            <div class="signals-header">
+              <div class="signals-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--violet-electric);">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Signaux et Indices Détectés
+                <span id="signalsCountPill" class="signals-count-pill">0 signal</span>
+              </div>
+
+              <button id="btnCopyReport" class="btn btn-secondary" style="font-size: 13px; padding: 6px 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copier le rapport
+              </button>
+            </div>
+
+            <!-- Liste dynamique des alertes ou état zéro signal -->
+            <div id="signalsContainer" class="signals-list">
+              <!-- Rempli par JavaScript -->
+            </div>
+          </div>
+
+          <!-- Les 4 Réflexes Clés de Sécurité (Pédagogie Grand Public) -->
+          <div class="reflexes-grid">
+            <div class="reflex-card">
+              <div class="reflex-card-header">
+                <div class="reflex-card-icon">1</div>
+                Ne cliquez jamais dans l'urgence
+              </div>
+              <p class="reflex-card-text">
+                Aucune administration ni banque ne bloque un compte sous 24h par email. La panique est l'arme n°1 du fraudeur.
+              </p>
+            </div>
+
+            <div class="reflex-card">
+              <div class="reflex-card-icon">2</div>
+              Vérifiez le nom de domaine
+            </div>
+            <p class="reflex-card-text">
+              Regardez toujours la fin de l'adresse web avant le premier « / ». <em>ameli.espace-securite.com</em> n'appartient PAS à Ameli.
+            </p>
+            </div>
+
+            <div class="reflex-card">
+              <div class="reflex-card-icon">3</div>
+              Passez par l'application officielle
+            </div>
+            <p class="reflex-card-text">
+              En cas de doute, quittez l'email et connectez-vous directement sur l'application mobile ou le site officiel que vous avez mis en favori.
+            </p>
+            </div>
+
+            <div class="reflex-card">
+              <div class="reflex-card-icon">4</div>
+              Codes SMS = Strictement Secrets
+            </div>
+            <p class="reflex-card-text">
+              Votre banquier ne vous demandera jamais par téléphone ou email de lui dicter un code de validation SMS à 6 chiffres.
+            </p>
+            </div>
+          </div>
+
+        </section>
+      </main>
+
+      <!-- Pied de Page -->
+      <footer class="app-footer">
+        <div><strong>PhishGuard</strong> — Outil de sensibilisation et détection heuristique 100% frontend.</div>
+        <div>Aucun contenu collé ne quitte votre ordinateur • Analyse effectuée localement dans votre navigateur</div>
+      </footer>
+
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast" role="status" aria-live="assertive">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--cyan-vivid)">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span id="toastMessage">Action confirmée</span>
+    </div>
+
+    <!-- MOTEUR DE DÉTECTION JAVASCRIPT COMPLET, AUTONOME & SANS DÉPENDANCE -->
+    <script>
+      (function () {
+        "use strict";
+
+        // --- BIBLIOTHÈQUE D'EXEMPLES PRÉDÉFINIS ---
+        const PRESETS = {
+          bank: `De : "Sécurité BNP Paribas" <alerte-client@bnp-verification-securite.xyz>
+À : destinataire@domaine.fr
+Objet : URGENT : Suspension définitive de vos accès sous 24h
+
+Cher client,
+
+Nous avons détecté une activité anormale sur votre compte bancaire ce matin. Par mesure de sécurité, l'accès à vos comptes en ligne sera définitivement suspendu dans les 24 heures si vous ne confirmez pas vos identifiants.
+
+Veuillez cliquer immédiatement sur le lien sécurisé ci-dessous pour confirmer votre numéro de carte bancaire, votre cryptogramme CVV et mettre à jour votre mot de passe :
+
+http://185.220.101.42/banque-auth/validation.php
+
+Attention : Sans action immédiate de votre part, vos cartes bancaires seront bloquées.
+
+Cordialement,
+Le Service de Sécurité des Comptes`,
+
+          parcel: `De : "La Poste - Suivi Colissimo" <notification@suivi-colis-express.top>
+Objet : Votre colis N° 8X492048 est bloqué au centre de tri
+
+Bonjour cher client,
+
+Votre colis ne peut pas être livré en raison de frais de douane manquants d'un montant de 1,99 €.
+
+Pour reprogrammer immédiatement votre livraison à domicile, confirmez vos coordonnées de paiement sur notre lien sécurisé :
+https://bit.ly/colissimo-suivi-douane
+
+Sans confirmation sous 48h, le colis sera retourné à l'expéditeur.`,
+
+          tax: `De : "Direction Générale des Finances Publiques" <remboursement@impots-gouv-fr-service.buzz>
+Objet : Notification de remboursement d'un trop-perçu de 432,60 €
+
+Cher utilisateur,
+
+Après les derniers calculs de votre déclaration fiscale, nous avons constaté un trop-perçu en votre faveur d'un montant de 432,60 €.
+
+Pour recevoir votre virement directement sous 48 heures, veuillez renseigner votre relevé d'identité bancaire (RIB) et les chiffres de votre carte bancaire sur notre formulaire :
+http://impots.gouv.fr.remboursement-espace.xyz/credit.html
+
+Veuillez trouver la notification officielle dans l'archive jointe : Avis_Fiscale_2024.zip
+
+La Direction Générale des Finances Publiques.`,
+
+          "ip-url": `http://194.26.29.112/espace-client-login/auth.html`,
+
+          legit: `De : "Doctolib" <ne-pas-repondre@doctolib.fr>
+À : jean.dupont@email.fr
+Objet : Confirmation de votre rendez-vous médical
+
+Bonjour Jean Dupont,
+
+Nous vous confirmons votre rendez-vous avec le Dr Martin le jeudi 28 septembre à 14h30 au Cabinet Médical Central (12 rue de la Paix, 75002 Paris).
+
+Pour modifier ou annuler ce rendez-vous, vous pouvez vous connecter à votre compte sur notre site officiel : https://www.doctolib.fr
+
+Rappel : Doctolib ne vous demandera jamais vos coordonnées bancaires par email ou SMS.
+
+Prenez soin de vous,
+L'équipe Doctolib`
+        };
+
+        // --- 10 RÈGLES HEURISTIQUES PONDÉRÉES DE DÉTECTION ---
+        const DETECTION_RULES = [
+          {
+            id: "urgency_threat",
+            name: "Langage d'urgence artificielle ou menaces",
+            points: 20,
+            severity: "critical",
+            severityLabel: "Critique (+20 pts)",
+            borderColor: "var(--coral-red)",
+            explanation: "L'attaquant cherche à créer un sentiment de panique immédiat pour vous forcer à cliquer sans réfléchir ni vérifier.",
+            tip: "Conseil : Une vraie banque ou administration ne coupe jamais un accès en 24h par email. Prenez votre temps.",
+            test: function (text) {
+              const regex = /(urgent|urgence|immédiat|immédiate|immédiatement|sous\s+24\s*h|dans\s+les\s+24\s*h|sous\s+48\s*h|dans\s+les\s+48\s*h|dernier\s+avis|action\s+requise|compte\s+suspendu|clôture\s+de\s+votre\s+compte|bloqu(é|er|era)|accès\s+restreint|poursuites\s+judiciaires|délai\s+expiré|suspension\s+définitive|sans\s+délai|activit[ée]\s+anormale|activité\s+suspecte|carte\s+bloquée)/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          },
+          {
+            id: "credential_bank_request",
+            name: "Demande d'identifiants ou données bancaires",
+            points: 25,
+            severity: "critical",
+            severityLabel: "Critique (+25 pts)",
+            borderColor: "var(--coral-red)",
+            explanation: "C'est l'objectif majeur du phishing : subtiliser vos coordonnées de connexion, vos mots de passe ou les numéros de votre carte de crédit.",
+            tip: "Conseil : Ne donnez JAMAIS votre mot de passe, cryptogramme CVV ou code SMS reçu suite à un lien par email.",
+            test: function (text) {
+              const regex = /(mot\s+de\s+passe|code\s+secret|carte\s+bancaire|numéro\s+de\s+carte|cryptogramme|cvv|date\s+d['’]expiration|coordonnées\s+bancaires|rib|iban|confirmer\s+vos\s+identifiants|renouveler\s+vos\s+identifiants|informations\s+de\s+paiement|code\s+(?:reçu\s+par\s+)?sms|votre\s+identifiant|mettre\s+à\s+jour\s+votre\s+carte)/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          },
+          {
+            id: "generic_salutation",
+            name: "Salutation générique ou impersonnelle",
+            points: 10,
+            severity: "medium",
+            severityLabel: "Moyen (+10 pts)",
+            borderColor: "var(--amber-warning)",
+            explanation: "Les campagnes de phishing sont envoyées en masse à des listes d'emails sans connaître votre prénom ni votre nom de famille.",
+            tip: "Conseil : Votre banque ou organisme officiel vous nomme toujours par votre nom complet (ex: « Bonjour M. Dupont »).",
+            test: function (text) {
+              const regex = /(cher\s+client|chère\s+cliente|cher\(e\)\s+client\(e\)|cher\s+utilisateur|chère\s+utilisatrice|cher\s+abonné|chère\s+abonnée|bonjour\s+cher\s+client|dear\s+customer|dear\s+user|cher\s+membre)/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          },
+          {
+            id: "ip_based_url",
+            name: "Lien basé directement sur une adresse IP",
+            points: 25,
+            severity: "critical",
+            severityLabel: "Critique (+25 pts)",
+            borderColor: "var(--coral-red)",
+            explanation: "Le lien pointe vers une suite de chiffres (adresse IP brute) au lieu d'un nom de domaine officiel. Les pirates l'utilisent pour monter des serveurs illégitimes jetables.",
+            tip: "Conseil : Ne cliquez jamais sur un lien composé uniquement de chiffres comme « 185.220... ». Aucun service légitime ne fonctionne ainsi.",
+            test: function (text) {
+              const regex = /https?:\/\/\b(?:\d{1,3}\.){3}\d{1,3}\b(?::\d+)?(?:\/[^\s]*)?/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          },
+          {
+            id: "shortened_url",
+            name: "Lien raccourci masquant la destination réelle",
+            points: 15,
+            severity: "high",
+            severityLabel: "Élevé (+15 pts)",
+            borderColor: "var(--coral-red)",
+            explanation: "Les réducteurs d'URL (bit.ly, tinyurl...) cachent l'adresse web finale afin que vous ne puissiez pas repérer le faux site avant de cliquer.",
+            tip: "Conseil : Les administrations, banques et commerçants n'utilisent jamais de liens bit.ly ou tinyurl pour leurs démarches sensibles.",
+            test: function (text) {
+              const regex = /https?:\/\/(?:www\.)?(bit\.ly|tinyurl\.com|t\.co|is\.gd|ow\.ly|cutt\.ly|rb\.gy|rebrand\.ly|s\.id|v\.gd|shorturl\.at|clck\.ru)\/[a-zA-Z0-9_\-\+]+/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          },
+          {
+            id: "brand_typosquatting",
+            name: "Domaine usurpant ou imitant une marque réputée",
+            points: 25,
+            severity: "critical",
+            severityLabel: "Critique (+25 pts)",
+            borderColor: "var(--coral-red)",
+            explanation: "Le domaine contient le nom d'une marque officielle combiné avec des tirets ou des fautes intentionnelles (ex: paypa1, securite-bnp, ameli-remboursement) pour abuser de votre confiance.",
+            tip: "Conseil : Regardez attentivement le domaine avant le premier slash. Par exemple, « laposte.suivi-france.com » n'appartient PAS à La Poste mais à « suivi-france.com ».",
+            test: function (text) {
+              // Recherche de domaines suspects avec marques connues
+              const typos = /(paypa1|arnazon|micros0ft|app1e|go0gle|ame1i|lap0ste|netflixx)/i;
+              const compoundBrands = /(?:https?:\/\/|[a-zA-Z0-9.\-_]+@)([a-zA-Z0-9\-.]*(?:paypal|ameli|impots|laposte|colissimo|chronopost|amazon|apple|microsoft|netflix|banquepostale|creditagricole|societegenerale|bnp|mondialrelay|orange|sfr|bouygues|free)[a-zA-Z0-9\-.]*\.[a-z]{2,})/gi;
+              
+              const typoMatch = text.match(typos);
+              if (typoMatch) {
+                return { matched: true, snippet: typoMatch[0] };
+              }
+
+              const compounds = text.match(compoundBrands);
+              if (compounds) {
+                // Vérifier si ce n'est pas le domaine officiel propre
+                const officialDomains = [
+                  "paypal.com", "ameli.fr", "impots.gouv.fr", "laposte.fr", "colissimo.fr",
+                  "chronopost.fr", "amazon.fr", "amazon.com", "apple.com", "microsoft.com",
+                  "netflix.com", "labanquepostale.fr", "credit-agricole.fr", "societegenerale.fr",
+                  "mabanque.bnpparibas", "mondialrelay.fr", "orange.fr", "sfr.fr", "bouyguestelecom.fr", "free.fr"
+                ];
+
+                for (let domain of compounds) {
+                  let cleanDomain = domain.replace(/https?:\/\//i, "").split("/")[0].split("@").pop().toLowerCase();
+                  const isOfficial = officialDomains.some(off => cleanDomain === off || cleanDomain.endsWith("." + off));
+                  if (!isOfficial && (cleanDomain.includes("-") || cleanDomain.split(".").length > 2)) {
+                    return { matched: true, snippet: cleanDomain };
+                  }
+                }
+              }
+              return { matched: false };
+            }
+          },
+          {
+            id: "insecure_http",
+            name: "Lien non sécurisé (HTTP au lieu de HTTPS)",
+            points: 15,
+            severity: "medium",
+            severityLabel: "Moyen (+15 pts)",
+            borderColor: "var(--amber-warning)",
+            explanation: "Le protocole 'http://' n'est pas chiffré. De nos jours, 100% des banques, impôts et commerçants utilisent obligatoirement le cadenas HTTPS.",
+            tip: "Conseil : Ne saisissez JAMAIS la moindre coordonnée sur une page web sans cadenas de sécurité HTTPS.",
+            test: function (text) {
+              const regex = /\bhttp:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          },
+          {
+            id: "suspicious_attachment",
+            name: "Pièce jointe suspecte ou fichier dangereux (.exe, .zip, macros)",
+            points: 20,
+            severity: "high",
+            severityLabel: "Élevé (+20 pts)",
+            borderColor: "var(--coral-red)",
+            explanation: "Mention de fichiers exécutables (.exe, .scr), d'archives (.zip, .iso) ou de documents demandant d'activer les macros, techniques classiques pour injecter un virus ou rançongiciel.",
+            tip: "Conseil : N'ouvrez jamais de fichier exécutable ou d'archive inconnue reçu par email. Une vraie facture est souvent disponible sur votre espace client.",
+            test: function (text) {
+              const regex = /(\.(exe|scr|vbs|bat|cmd|iso|img|hta|wsf|docm|xlsm)\b|\.(pdf|docx?|xlsx?)\.(exe|vbs|scr|bat)\b|activer\s+les\s+macros|archive\s+zip\s+protégée|archive\s+jointe|pièce\s+jointe\s*:\s*[a-zA-Z0-9_\-.]+\.zip)/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          },
+          {
+            id: "unusual_tld",
+            name: "Extension de domaine inhabituelle ou à haut risque (.xyz, .tk, .top)",
+            points: 15,
+            severity: "high",
+            severityLabel: "Élevé (+15 pts)",
+            borderColor: "var(--amber-warning)",
+            explanation: "Le site utilise une extension de nom de domaine bon marché et éphémère (.xyz, .top, .tk, .buzz, .ru), très prisée des fraudeurs pour créer des faux sites à bas coût.",
+            tip: "Conseil : Une grande entreprise ou une administration française utilise des extensions reconnues (.fr, .com, .gouv.fr).",
+            test: function (text) {
+              const regex = /(?:https?:\/\/|[a-zA-Z0-9.\-_]+@)[a-zA-Z0-9.\-_]+\.(xyz|top|work|click|loan|buzz|surf|monster|fit|rest|icu|sbs|tk|ml|ga|cf|gq|ru|cn)\b/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          },
+          {
+            id: "unexpected_gain",
+            name: "Promesse de gain inattendu, remboursement ou petits frais",
+            points: 20,
+            severity: "high",
+            severityLabel: "Élevé (+20 pts)",
+            borderColor: "var(--coral-red)",
+            explanation: "Les escrocs utilisent l'attrait d'une somme d'argent inattendue ou prétextent un infime frais de douane (1,99€) pour vous inciter à communiquer votre carte bancaire.",
+            tip: "Conseil : Si vous n'avez joué à aucune loterie, vous n'avez rien gagné. Et les administrations ne remboursent jamais en vous demandant votre numéro de carte bancaire.",
+            test: function (text) {
+              const regex = /(vous\s+avez\s+gagné|remboursement\s+(?:en\s+votre\s+faveur|d['’]un\s+trop-perçu)|trop-perçu\s+de\s+[0-9]+|indemnité\s+disponible|colis\s+bloqué.*(?:1,99|2\s*€|frais\s+de\s+douane)|frais\s+de\s+douane\s+manquants|tirage\s+au\s+sort|lot\s+exceptionnel|gain\s+de\s+[0-9]+|prime\s+exceptionnelle|chèque\s+cadeau)/i;
+              const match = text.match(regex);
+              return match ? { matched: true, snippet: match[0] } : { matched: false };
+            }
+          }
+        ];
+
+        // --- ÉLÉMENTS DU DOM ---
+        const textarea = document.getElementById("scannerInput");
+        const charCountEl = document.getElementById("charCount");
+        const linksCountEl = document.getElementById("linksCount");
+        const inputTypeIndicator = document.getElementById("inputTypeIndicator");
+        const btnAnalyze = document.getElementById("btnAnalyze");
+        const btnReset = document.getElementById("btnReset");
+        const btnCopyReport = document.getElementById("btnCopyReport");
+        const btnCopySelfContained = document.getElementById("btnCopySelfContained");
+        const presetButtons = document.querySelectorAll(".preset-chip");
+        
+        const resultsSection = document.getElementById("resultsSection");
+        const scoreValueEl = document.getElementById("scoreValue");
+        const gaugeFill = document.getElementById("gaugeFill");
+        const riskLevelBadge = document.getElementById("riskLevelBadge");
+        const verdictTitleEl = document.getElementById("verdictTitle");
+        const verdictExplanationEl = document.getElementById("verdictExplanation");
+        const verdictIconBox = document.getElementById("verdictIconBox");
+        const riskMarker = document.getElementById("riskMarker");
+        const signalsCountPill = document.getElementById("signalsCountPill");
+        const signalsContainer = document.getElementById("signalsContainer");
+        const toastEl = document.getElementById("toast");
+        const toastMessageEl = document.getElementById("toastMessage");
+
+        let lastAnalysisResult = null;
+
+        // --- GESTION DU TOAST ---
+        function showToast(msg) {
+          toastMessageEl.textContent = msg;
+          toastEl.classList.add("show");
+          setTimeout(function () {
+            toastEl.classList.remove("show");
+          }, 3200);
+        }
+
+        // --- ANALYSE DE TÉLÉMESURE EN DIRECT DANS LE TEXTAREA ---
+        function updateInputStats() {
+          const text = textarea.value.trim();
+          charCountEl.textContent = text.length;
+
+          // Détection d'URLs
+          const urlRegex = /https?:\/\/[^\s]+/gi;
+          const urls = text.match(urlRegex) || [];
+          linksCountEl.textContent = urls.length;
+
+          // Mise à jour de l'indicateur de type
+          if (text.length === 0) {
+            inputTypeIndicator.className = "input-type-tag";
+            inputTypeIndicator.innerHTML = `
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
+              Email ou URL
+            `;
+          } else if (urls.length === 1 && text === urls[0]) {
+            inputTypeIndicator.className = "input-type-tag active-url";
+            inputTypeIndicator.innerHTML = `
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              URL isolée détectée
+            `;
+          } else {
+            inputTypeIndicator.className = "input-type-tag active-email";
+            inputTypeIndicator.innerHTML = `
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              Texte / Email complet
+            `;
+          }
+        }
+
+        textarea.addEventListener("input", updateInputStats);
+
+        // --- CHARGEMENT D'UN EXEMPLE ---
+        presetButtons.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            const presetKey = btn.getAttribute("data-preset");
+            if (PRESETS[presetKey]) {
+              textarea.value = PRESETS[presetKey];
+              updateInputStats();
+              runAnalysis();
+              showToast("Exemple chargé et analysé !");
+            }
+          });
+        });
+
+        // --- BOUTON RÉINITIALISER ---
+        btnReset.addEventListener("click", function () {
+          textarea.value = "";
+          updateInputStats();
+          resultsSection.style.display = "none";
+          lastAnalysisResult = null;
+          showToast("Zone de saisie réinitialisée");
+        });
+
+        // --- BOUTON ANALYSER ---
+        btnAnalyze.addEventListener("click", function () {
+          if (!textarea.value.trim()) {
+            showToast("Veuillez d'abord coller un texte ou une URL à analyser.");
+            textarea.focus();
+            return;
+          }
+          runAnalysis();
+        });
+
+        // --- MOTEUR PRINCIPAL D'ANALYSE ---
+        function runAnalysis() {
+          const rawText = textarea.value.trim();
+          if (!rawText) return;
+
+          let rawScore = 0;
+          const detectedSignals = [];
+
+          // Exécution des 10 règles
+          DETECTION_RULES.forEach(function (rule) {
+            const testResult = rule.test(rawText);
+            if (testResult.matched) {
+              rawScore += rule.points;
+              detectedSignals.push({
+                rule: rule,
+                snippet: testResult.snippet || ""
+              });
+            }
+          });
+
+          // Plafonnage du score de 0 à 100
+          const finalScore = Math.min(100, rawScore);
+
+          // Détermination du verdict
+          let riskLevel = "low";
+          let verdictTitle = "Risque Faible — Aucun signal critique détecté";
+          let verdictExplanation = "Ce contenu ne présente pas les marqueurs habituels de phishing connus. Restez néanmoins toujours vigilant quant aux demandes imprévues de paiement ou de transmission d'informations confidentielles.";
+          let themeColor = "var(--mint-safe)";
+          let badgeClass = "risk-badge-low";
+          let badgeText = "RISQUE FAIBLE";
+          let iconSvg = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+          `;
+
+          if (finalScore > 60) {
+            riskLevel = "high";
+            verdictTitle = "ALERTE : Risque Élevé de Phishing !";
+            verdictExplanation = "Ce contenu cumule plusieurs signaux caractéristiques d'une tentative d'arnaque avérée. Ne cliquez sur aucun lien, ne téléchargez aucune pièce jointe et supprimez immédiatement ce message.";
+            themeColor = "var(--coral-red)";
+            badgeClass = "risk-badge-high";
+            badgeText = "RISQUE ÉLEVÉ";
+            iconSvg = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            `;
+          } else if (finalScore > 25) {
+            riskLevel = "moderate";
+            verdictTitle = "ATTENTION : Risque Modéré — Éléments suspects";
+            verdictExplanation = "Des signaux troublants ont été identifiés dans ce message. Il est fortement recommandé de ne pas répondre et de vérifier directement sur le site officiel de l'organisme.";
+            themeColor = "var(--amber-warning)";
+            badgeClass = "risk-badge-moderate";
+            badgeText = "RISQUE MODÉRÉ";
+            iconSvg = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            `;
+          }
+
+          lastAnalysisResult = {
+            score: finalScore,
+            level: riskLevel,
+            title: verdictTitle,
+            signals: detectedSignals,
+            rawText: rawText
+          };
+
+          // --- RENDU VISUEL ---
+          renderResults(finalScore, riskLevel, verdictTitle, verdictExplanation, themeColor, badgeClass, badgeText, iconSvg, detectedSignals);
+        }
+
+        // --- AFFICHAGE ET ANIMATION DU RÉSULTAT ---
+        function renderResults(score, level, title, explanation, color, badgeClass, badgeText, iconSvg, signals) {
+          resultsSection.style.display = "block";
+          
+          // Mise à jour du badge et textes
+          riskLevelBadge.className = "score-level-badge " + badgeClass;
+          riskLevelBadge.textContent = badgeText;
+          verdictTitleEl.textContent = title;
+          verdictExplanationEl.textContent = explanation;
+          verdictIconBox.innerHTML = iconSvg;
+          verdictIconBox.style.color = color;
+          verdictIconBox.style.background = level === "high" ? "var(--coral-light)" : level === "moderate" ? "var(--amber-light)" : "var(--mint-light)";
+
+          // Animation du chiffre du score
+          animateNumber(scoreValueEl, 0, score, 900);
+
+          // Animation de la jauge circulaire SVG (Périmètre = 2 * PI * r = 2 * 3.14159 * 70 ≈ 440)
+          const circumference = 440;
+          const offset = circumference - (score / 100) * circumference;
+          gaugeFill.style.stroke = color;
+          gaugeFill.style.strokeDasharray = circumference;
+          // Déclenché après un micro-délai pour la transition fluide
+          setTimeout(function () {
+            gaugeFill.style.strokeDashoffset = offset;
+          }, 30);
+
+          // Curseur de l'échelle linéaire
+          riskMarker.style.left = score + "%";
+          riskMarker.style.borderColor = color;
+
+          // Mise à jour des signaux
+          signalsCountPill.textContent = signals.length + (signals.length > 1 ? " signaux" : " signal");
+          signalsCountPill.style.background = signals.length > 0 ? (level === "high" ? "var(--coral-light)" : "var(--amber-light)") : "var(--mint-light)";
+          signalsCountPill.style.color = signals.length > 0 ? (level === "high" ? "#be123c" : "#b45309") : "#047857";
+
+          // Nettoyage du conteneur
+          signalsContainer.innerHTML = "";
+
+          if (signals.length === 0) {
+            // État rassurant mais pédagogique
+            signalsContainer.innerHTML = `
+              <div class="zero-signals-card">
+                <div class="zero-signals-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="zero-signals-title">Aucun indicateur de menace typique identifié</h3>
+                  <p class="zero-signals-text">
+                    Le message ou l'adresse analysée ne comporte pas les pièges évidents de phishing (pas de faux sentiment d'urgence flagrant, pas d'URL sur adresse IP, pas d'usurpation de domaine repérée).
+                  </p>
+                  <p class="zero-signals-text" style="margin-top: 8px; font-size: 13px; color: #15803d;">
+                    <strong>Rappel de prudence :</strong> Même avec un score de 0, si l'expéditeur vous demande plus tard un paiement inhabituel ou vos coordonnées bancaires, restez toujours méfiant et contactez-le par un canal téléphonique vérifié.
+                  </p>
+                </div>
+              </div>
+            `;
+          } else {
+            // Affichage détaillé et transparent de chaque règle déclenchée
+            signals.forEach(function (item) {
+              const rule = item.rule;
+              const card = document.createElement("div");
+              card.className = "signal-item";
+              card.style.borderLeftColor = rule.borderColor;
+
+              card.innerHTML = `
+                <div class="signal-top">
+                  <div class="signal-name">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="${rule.borderColor}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    ${escapeHtml(rule.name)}
+                  </div>
+                  <span class="signal-severity-tag severity-${rule.severity}">
+                    ${rule.severityLabel}
+                  </span>
+                </div>
+                
+                ${item.snippet ? `
+                  <div class="signal-quote">
+                    <strong>Élément détecté :</strong> « ${escapeHtml(item.snippet)} »
+                  </div>
+                ` : ""}
+
+                <div class="signal-explanation">
+                  <strong>Pourquoi c'est suspect :</strong> ${escapeHtml(rule.explanation)}
+                </div>
+
+                <div class="signal-tip">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg>
+                  <span>${escapeHtml(rule.tip)}</span>
+                </div>
+              `;
+
+              signalsContainer.appendChild(card);
+            });
+          }
+
+          // Défilement doux vers le résultat
+          resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+        // --- UTILITAIRE D'ANIMATION DE CHIFFRE ---
+        function animateNumber(element, start, end, duration) {
+          let startTime = null;
+          function step(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const currentVal = Math.floor(progress * (end - start) + start);
+            element.textContent = currentVal;
+            if (progress < 1) {
+              window.requestAnimationFrame(step);
+            } else {
+              element.textContent = end;
+            }
+          }
+          window.requestAnimationFrame(step);
+        }
+
+        // --- ÉCHAPPEMENT HTML XSS ---
+        function escapeHtml(str) {
+          if (!str) return "";
+          return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        }
+
+        // --- COPIER LE RAPPORT D'ANALYSE ---
+        btnCopyReport.addEventListener("click", function () {
+          if (!lastAnalysisResult) {
+            showToast("Aucun résultat d'analyse à copier.");
+            return;
+          }
+
+          let report = `=== RAPPORT D'ANALYSE PHISHGUARD ===\n`;
+          report += `Score de Risque : ${lastAnalysisResult.score} / 100 (${lastAnalysisResult.level.toUpperCase()})\n`;
+          report += `Verdict : ${lastAnalysisResult.title}\n`;
+          report += `Nombre de signaux détectés : ${lastAnalysisResult.signals.length}\n\n`;
+
+          if (lastAnalysisResult.signals.length > 0) {
+            report += `DÉTAILS DES SIGNAUX SUSPECTS :\n`;
+            lastAnalysisResult.signals.forEach(function (s, i) {
+              report += `${i + 1}. [${s.rule.name}] (+${s.rule.points} pts)\n`;
+              if (s.snippet) report += `   Extrait : « ${s.snippet} »\n`;
+              report += `   Raison : ${s.rule.explanation}\n`;
+              report += `   Conseil : ${s.rule.tip}\n\n`;
+            });
+          } else {
+            report += `Aucun indicateur de menace typique détecté.\n`;
+          }
+
+          report += `\nAnalyse effectuée localement dans le navigateur avec PhishGuard.\n`;
+
+          navigator.clipboard.writeText(report).then(function () {
+            showToast("Rapport complet copié dans le presse-papier !");
+          }).catch(function () {
+            showToast("Impossible de copier automatiquement.");
+          });
+        });
+
+        // --- TÉLÉCHARGEMENT / COPIE DU CODE DU FICHIER AUTONOME ---
+        btnCopySelfContained.addEventListener("click", function () {
+          // Permet à l'utilisateur de télécharger le fichier .html autonome directement
+          const htmlContent = "<!doctype html>\n" + document.documentElement.outerHTML;
+          const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "PhishGuard.html";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          showToast("Fichier autonome 'PhishGuard.html' téléchargé avec succès !");
+        });
+
+      })();
+    </script>
+  </body>
+</html>
